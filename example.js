@@ -1,8 +1,5 @@
+require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 'use strict';
-
-Object.defineProperty(exports, '__esModule', {
-	value: true
-});
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
@@ -18,38 +15,41 @@ var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
 
-var _remarkable = require('remarkable');
+var _reactDom = require('react-dom');
 
-var _remarkable2 = _interopRequireDefault(_remarkable);
+var _reactDom2 = _interopRequireDefault(_reactDom);
 
-var ReactRemark = (function (_React$Component) {
-	_inherits(ReactRemark, _React$Component);
+var _reactRemark = require('react-remark');
 
-	function ReactRemark(props) {
-		_classCallCheck(this, ReactRemark);
+var _reactRemark2 = _interopRequireDefault(_reactRemark);
 
-		_get(Object.getPrototypeOf(ReactRemark.prototype), 'constructor', this).call(this, props);
-		this.md = new _remarkable2['default']({
-			html: this.props.html || false
-		});
+var App = (function (_React$Component) {
+	_inherits(App, _React$Component);
+
+	function App() {
+		_classCallCheck(this, App);
+
+		_get(Object.getPrototypeOf(App.prototype), 'constructor', this).apply(this, arguments);
 	}
 
-	_createClass(ReactRemark, [{
+	_createClass(App, [{
 		key: 'render',
 		value: function render() {
-			return _react2['default'].createElement('span', {
-				dangerouslySetInnerHTML: { __html: this.md.render(this.props.source) }
-			});
+			var example = ['# React Remark\n\n ***\n This is a react component that wraps [Remarkable](https://github.com/jonschlinkert/remarkable). ', 'Anything that is possible with Remarkable should be possible with this component.\n\n', 'Even embedding html into markdown works!\n\n Go to google with this link: <a href="https://www.google.com/">Google</a>'].join('');
+
+			return _react2['default'].createElement(
+				'div',
+				null,
+				_react2['default'].createElement(_reactRemark2['default'], { html: true, source: example })
+			);
 		}
 	}]);
 
-	return ReactRemark;
+	return App;
 })(_react2['default'].Component);
 
-ReactRemark.propTypes = {
-	html: _react2['default'].PropTypes.bool,
-	source: _react2['default'].PropTypes.string
-};
+;
 
-exports['default'] = ReactRemark;
-module.exports = exports['default'];
+_reactDom2['default'].render(_react2['default'].createElement(App, null), document.getElementById('app'));
+
+},{"react":undefined,"react-dom":undefined,"react-remark":undefined}]},{},[1]);
