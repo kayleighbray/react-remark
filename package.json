@@ -1,6 +1,6 @@
 {
   "name": "react-remark",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "react-remark",
   "main": "lib/ReactRemark.js",
   "author": "Aaron Wong",
