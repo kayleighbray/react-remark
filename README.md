@@ -32,10 +32,11 @@ class App extends React.Component {
 
 ### Properties
 
-| Props    | Type    | Description                                             |
-|----------|---------|---------------------------------------------------------|
-| source   | string  | String containing the markdown that needs to be parsed. |
-| html     | bool    | Enable HTML tags in the source.                         |
+| Props     | Type    | Description                                             |
+|-----------|---------|---------------------------------------------------------|
+| source    | string  | String containing the markdown that needs to be parsed. |
+| html      | bool    | Enable HTML tags in the source.                         |
+| className | string  | CSS class name.                                         |
 
 
 ## Demo & Examples
