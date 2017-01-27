@@ -1,0 +1,29 @@
+{
+  "name": "react-remark",
+  "version": "0.0.0",
+  "description": "react-remark",
+  "main": "dist/react-remark.min.js",
+  "homepage": "https://github.com/AaronCCWong/react-remark",
+  "authors": [
+    "Aaron Wong"
+  ],
+  "moduleType": [
+    "amd",
+    "globals",
+    "node"
+  ],
+  "keywords": [
+    "react",
+    "react-component"
+  ],
+  "license": "MIT",
+  "ignore": [
+    ".editorconfig",
+    ".gitignore",
+    "package.json",
+    "src",
+    "node_modules",
+    "example",
+    "test"
+  ]
+}
