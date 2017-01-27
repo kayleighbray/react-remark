@@ -40,6 +40,8 @@ class App extends React.Component {
 
 ## Demo & Examples
 
+Check out the live demo for [react-remark](http://www.aaronccwong.com/react-remark/).
+
 To build the examples locally, run:
 
 ```
