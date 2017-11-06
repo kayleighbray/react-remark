@@ -2324,11 +2324,966 @@ return Autolinker;
 }));
 
 },{}],2:[function(require,module,exports){
+"use strict";
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * 
+ */
+
+function makeEmptyFunction(arg) {
+  return function () {
+    return arg;
+  };
+}
+
+/**
+ * This function accepts and discards inputs; it has no side effects. This is
+ * primarily useful idiomatically for overridable function endpoints which
+ * always need to be callable, since JS lacks a null-call idiom ala Cocoa.
+ */
+var emptyFunction = function emptyFunction() {};
+
+emptyFunction.thatReturns = makeEmptyFunction;
+emptyFunction.thatReturnsFalse = makeEmptyFunction(false);
+emptyFunction.thatReturnsTrue = makeEmptyFunction(true);
+emptyFunction.thatReturnsNull = makeEmptyFunction(null);
+emptyFunction.thatReturnsThis = function () {
+  return this;
+};
+emptyFunction.thatReturnsArgument = function (arg) {
+  return arg;
+};
+
+module.exports = emptyFunction;
+},{}],3:[function(require,module,exports){
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ */
+
+'use strict';
+
+/**
+ * Use invariant() to assert state which your program assumes to be true.
+ *
+ * Provide sprintf-style format (only %s is supported) and arguments
+ * to provide information about what broke and what you were
+ * expecting.
+ *
+ * The invariant message will be stripped in production, but the invariant
+ * will remain to ensure logic does not differ in production.
+ */
+
+var validateFormat = function validateFormat(format) {};
+
+if ("production" !== 'production') {
+  validateFormat = function validateFormat(format) {
+    if (format === undefined) {
+      throw new Error('invariant requires an error message argument');
+    }
+  };
+}
+
+function invariant(condition, format, a, b, c, d, e, f) {
+  validateFormat(format);
+
+  if (!condition) {
+    var error;
+    if (format === undefined) {
+      error = new Error('Minified exception occurred; use the non-minified dev environment ' + 'for the full error message and additional helpful warnings.');
+    } else {
+      var args = [a, b, c, d, e, f];
+      var argIndex = 0;
+      error = new Error(format.replace(/%s/g, function () {
+        return args[argIndex++];
+      }));
+      error.name = 'Invariant Violation';
+    }
+
+    error.framesToPop = 1; // we don't care about invariant's own frame
+    throw error;
+  }
+}
+
+module.exports = invariant;
+},{}],4:[function(require,module,exports){
+/**
+ * Copyright (c) 2014-present, Facebook, Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ */
+
+'use strict';
+
+var emptyFunction = require('./emptyFunction');
+
+/**
+ * Similar to invariant but only logs a warning if the condition is not met.
+ * This can be used to log issues in development environments in critical
+ * paths. Removing the logging code for production environments will keep the
+ * same logic and follow the same code paths.
+ */
+
+var warning = emptyFunction;
+
+if ("production" !== 'production') {
+  var printWarning = function printWarning(format) {
+    for (var _len = arguments.length, args = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+      args[_key - 1] = arguments[_key];
+    }
+
+    var argIndex = 0;
+    var message = 'Warning: ' + format.replace(/%s/g, function () {
+      return args[argIndex++];
+    });
+    if (typeof console !== 'undefined') {
+      console.error(message);
+    }
+    try {
+      // --- Welcome to debugging React ---
+      // This error was thrown as a convenience so that you can use this stack
+      // to find the callsite that caused this warning to fire.
+      throw new Error(message);
+    } catch (x) {}
+  };
+
+  warning = function warning(condition, format) {
+    if (format === undefined) {
+      throw new Error('`warning(condition, format, ...args)` requires a warning ' + 'message argument');
+    }
+
+    if (format.indexOf('Failed Composite propType: ') === 0) {
+      return; // Ignore CompositeComponent proptype check.
+    }
+
+    if (!condition) {
+      for (var _len2 = arguments.length, args = Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
+        args[_key2 - 2] = arguments[_key2];
+      }
+
+      printWarning.apply(undefined, [format].concat(args));
+    }
+  };
+}
+
+module.exports = warning;
+},{"./emptyFunction":2}],5:[function(require,module,exports){
+/*
+object-assign
+(c) Sindre Sorhus
+@license MIT
+*/
+
+'use strict';
+/* eslint-disable no-unused-vars */
+var getOwnPropertySymbols = Object.getOwnPropertySymbols;
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+var propIsEnumerable = Object.prototype.propertyIsEnumerable;
+
+function toObject(val) {
+	if (val === null || val === undefined) {
+		throw new TypeError('Object.assign cannot be called with null or undefined');
+	}
+
+	return Object(val);
+}
+
+function shouldUseNative() {
+	try {
+		if (!Object.assign) {
+			return false;
+		}
+
+		// Detect buggy property enumeration order in older V8 versions.
+
+		// https://bugs.chromium.org/p/v8/issues/detail?id=4118
+		var test1 = new String('abc');  // eslint-disable-line no-new-wrappers
+		test1[5] = 'de';
+		if (Object.getOwnPropertyNames(test1)[0] === '5') {
+			return false;
+		}
+
+		// https://bugs.chromium.org/p/v8/issues/detail?id=3056
+		var test2 = {};
+		for (var i = 0; i < 10; i++) {
+			test2['_' + String.fromCharCode(i)] = i;
+		}
+		var order2 = Object.getOwnPropertyNames(test2).map(function (n) {
+			return test2[n];
+		});
+		if (order2.join('') !== '0123456789') {
+			return false;
+		}
+
+		// https://bugs.chromium.org/p/v8/issues/detail?id=3056
+		var test3 = {};
+		'abcdefghijklmnopqrst'.split('').forEach(function (letter) {
+			test3[letter] = letter;
+		});
+		if (Object.keys(Object.assign({}, test3)).join('') !==
+				'abcdefghijklmnopqrst') {
+			return false;
+		}
+
+		return true;
+	} catch (err) {
+		// We don't expect any of the above to throw, but better to be safe.
+		return false;
+	}
+}
+
+module.exports = shouldUseNative() ? Object.assign : function (target, source) {
+	var from;
+	var to = toObject(target);
+	var symbols;
+
+	for (var s = 1; s < arguments.length; s++) {
+		from = Object(arguments[s]);
+
+		for (var key in from) {
+			if (hasOwnProperty.call(from, key)) {
+				to[key] = from[key];
+			}
+		}
+
+		if (getOwnPropertySymbols) {
+			symbols = getOwnPropertySymbols(from);
+			for (var i = 0; i < symbols.length; i++) {
+				if (propIsEnumerable.call(from, symbols[i])) {
+					to[symbols[i]] = from[symbols[i]];
+				}
+			}
+		}
+	}
+
+	return to;
+};
+
+},{}],6:[function(require,module,exports){
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+'use strict';
+
+if ("production" !== 'production') {
+  var invariant = require('fbjs/lib/invariant');
+  var warning = require('fbjs/lib/warning');
+  var ReactPropTypesSecret = require('./lib/ReactPropTypesSecret');
+  var loggedTypeFailures = {};
+}
+
+/**
+ * Assert that the values match with the type specs.
+ * Error messages are memorized and will only be shown once.
+ *
+ * @param {object} typeSpecs Map of name to a ReactPropType
+ * @param {object} values Runtime values that need to be type-checked
+ * @param {string} location e.g. "prop", "context", "child context"
+ * @param {string} componentName Name of the component for error messages.
+ * @param {?Function} getStack Returns the component stack.
+ * @private
+ */
+function checkPropTypes(typeSpecs, values, location, componentName, getStack) {
+  if ("production" !== 'production') {
+    for (var typeSpecName in typeSpecs) {
+      if (typeSpecs.hasOwnProperty(typeSpecName)) {
+        var error;
+        // Prop type validation may throw. In case they do, we don't want to
+        // fail the render phase where it didn't fail before. So we log it.
+        // After these have been cleaned up, we'll let them throw.
+        try {
+          // This is intentionally an invariant that gets caught. It's the same
+          // behavior as without this statement except with a better message.
+          invariant(typeof typeSpecs[typeSpecName] === 'function', '%s: %s type `%s` is invalid; it must be a function, usually from ' + 'the `prop-types` package, but received `%s`.', componentName || 'React class', location, typeSpecName, typeof typeSpecs[typeSpecName]);
+          error = typeSpecs[typeSpecName](values, typeSpecName, componentName, location, null, ReactPropTypesSecret);
+        } catch (ex) {
+          error = ex;
+        }
+        warning(!error || error instanceof Error, '%s: type specification of %s `%s` is invalid; the type checker ' + 'function must return `null` or an `Error` but returned a %s. ' + 'You may have forgotten to pass an argument to the type checker ' + 'creator (arrayOf, instanceOf, objectOf, oneOf, oneOfType, and ' + 'shape all require an argument).', componentName || 'React class', location, typeSpecName, typeof error);
+        if (error instanceof Error && !(error.message in loggedTypeFailures)) {
+          // Only monitor this failure once because there tends to be a lot of the
+          // same error.
+          loggedTypeFailures[error.message] = true;
+
+          var stack = getStack ? getStack() : '';
+
+          warning(false, 'Failed %s type: %s%s', location, error.message, stack != null ? stack : '');
+        }
+      }
+    }
+  }
+}
+
+module.exports = checkPropTypes;
+
+},{"./lib/ReactPropTypesSecret":10,"fbjs/lib/invariant":3,"fbjs/lib/warning":4}],7:[function(require,module,exports){
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+'use strict';
+
+var emptyFunction = require('fbjs/lib/emptyFunction');
+var invariant = require('fbjs/lib/invariant');
+var ReactPropTypesSecret = require('./lib/ReactPropTypesSecret');
+
+module.exports = function() {
+  function shim(props, propName, componentName, location, propFullName, secret) {
+    if (secret === ReactPropTypesSecret) {
+      // It is still safe when called from React.
+      return;
+    }
+    invariant(
+      false,
+      'Calling PropTypes validators directly is not supported by the `prop-types` package. ' +
+      'Use PropTypes.checkPropTypes() to call them. ' +
+      'Read more at http://fb.me/use-check-prop-types'
+    );
+  };
+  shim.isRequired = shim;
+  function getShim() {
+    return shim;
+  };
+  // Important!
+  // Keep this list in sync with production version in `./factoryWithTypeCheckers.js`.
+  var ReactPropTypes = {
+    array: shim,
+    bool: shim,
+    func: shim,
+    number: shim,
+    object: shim,
+    string: shim,
+    symbol: shim,
+
+    any: shim,
+    arrayOf: getShim,
+    element: shim,
+    instanceOf: getShim,
+    node: shim,
+    objectOf: getShim,
+    oneOf: getShim,
+    oneOfType: getShim,
+    shape: getShim,
+    exact: getShim
+  };
+
+  ReactPropTypes.checkPropTypes = emptyFunction;
+  ReactPropTypes.PropTypes = ReactPropTypes;
+
+  return ReactPropTypes;
+};
+
+},{"./lib/ReactPropTypesSecret":10,"fbjs/lib/emptyFunction":2,"fbjs/lib/invariant":3}],8:[function(require,module,exports){
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+'use strict';
+
+var emptyFunction = require('fbjs/lib/emptyFunction');
+var invariant = require('fbjs/lib/invariant');
+var warning = require('fbjs/lib/warning');
+var assign = require('object-assign');
+
+var ReactPropTypesSecret = require('./lib/ReactPropTypesSecret');
+var checkPropTypes = require('./checkPropTypes');
+
+module.exports = function(isValidElement, throwOnDirectAccess) {
+  /* global Symbol */
+  var ITERATOR_SYMBOL = typeof Symbol === 'function' && Symbol.iterator;
+  var FAUX_ITERATOR_SYMBOL = '@@iterator'; // Before Symbol spec.
+
+  /**
+   * Returns the iterator method function contained on the iterable object.
+   *
+   * Be sure to invoke the function with the iterable as context:
+   *
+   *     var iteratorFn = getIteratorFn(myIterable);
+   *     if (iteratorFn) {
+   *       var iterator = iteratorFn.call(myIterable);
+   *       ...
+   *     }
+   *
+   * @param {?object} maybeIterable
+   * @return {?function}
+   */
+  function getIteratorFn(maybeIterable) {
+    var iteratorFn = maybeIterable && (ITERATOR_SYMBOL && maybeIterable[ITERATOR_SYMBOL] || maybeIterable[FAUX_ITERATOR_SYMBOL]);
+    if (typeof iteratorFn === 'function') {
+      return iteratorFn;
+    }
+  }
+
+  /**
+   * Collection of methods that allow declaration and validation of props that are
+   * supplied to React components. Example usage:
+   *
+   *   var Props = require('ReactPropTypes');
+   *   var MyArticle = React.createClass({
+   *     propTypes: {
+   *       // An optional string prop named "description".
+   *       description: Props.string,
+   *
+   *       // A required enum prop named "category".
+   *       category: Props.oneOf(['News','Photos']).isRequired,
+   *
+   *       // A prop named "dialog" that requires an instance of Dialog.
+   *       dialog: Props.instanceOf(Dialog).isRequired
+   *     },
+   *     render: function() { ... }
+   *   });
+   *
+   * A more formal specification of how these methods are used:
+   *
+   *   type := array|bool|func|object|number|string|oneOf([...])|instanceOf(...)
+   *   decl := ReactPropTypes.{type}(.isRequired)?
+   *
+   * Each and every declaration produces a function with the same signature. This
+   * allows the creation of custom validation functions. For example:
+   *
+   *  var MyLink = React.createClass({
+   *    propTypes: {
+   *      // An optional string or URI prop named "href".
+   *      href: function(props, propName, componentName) {
+   *        var propValue = props[propName];
+   *        if (propValue != null && typeof propValue !== 'string' &&
+   *            !(propValue instanceof URI)) {
+   *          return new Error(
+   *            'Expected a string or an URI for ' + propName + ' in ' +
+   *            componentName
+   *          );
+   *        }
+   *      }
+   *    },
+   *    render: function() {...}
+   *  });
+   *
+   * @internal
+   */
+
+  var ANONYMOUS = '<<anonymous>>';
+
+  // Important!
+  // Keep this list in sync with production version in `./factoryWithThrowingShims.js`.
+  var ReactPropTypes = {
+    array: createPrimitiveTypeChecker('array'),
+    bool: createPrimitiveTypeChecker('boolean'),
+    func: createPrimitiveTypeChecker('function'),
+    number: createPrimitiveTypeChecker('number'),
+    object: createPrimitiveTypeChecker('object'),
+    string: createPrimitiveTypeChecker('string'),
+    symbol: createPrimitiveTypeChecker('symbol'),
+
+    any: createAnyTypeChecker(),
+    arrayOf: createArrayOfTypeChecker,
+    element: createElementTypeChecker(),
+    instanceOf: createInstanceTypeChecker,
+    node: createNodeChecker(),
+    objectOf: createObjectOfTypeChecker,
+    oneOf: createEnumTypeChecker,
+    oneOfType: createUnionTypeChecker,
+    shape: createShapeTypeChecker,
+    exact: createStrictShapeTypeChecker,
+  };
+
+  /**
+   * inlined Object.is polyfill to avoid requiring consumers ship their own
+   * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is
+   */
+  /*eslint-disable no-self-compare*/
+  function is(x, y) {
+    // SameValue algorithm
+    if (x === y) {
+      // Steps 1-5, 7-10
+      // Steps 6.b-6.e: +0 != -0
+      return x !== 0 || 1 / x === 1 / y;
+    } else {
+      // Step 6.a: NaN == NaN
+      return x !== x && y !== y;
+    }
+  }
+  /*eslint-enable no-self-compare*/
+
+  /**
+   * We use an Error-like object for backward compatibility as people may call
+   * PropTypes directly and inspect their output. However, we don't use real
+   * Errors anymore. We don't inspect their stack anyway, and creating them
+   * is prohibitively expensive if they are created too often, such as what
+   * happens in oneOfType() for any type before the one that matched.
+   */
+  function PropTypeError(message) {
+    this.message = message;
+    this.stack = '';
+  }
+  // Make `instanceof Error` still work for returned errors.
+  PropTypeError.prototype = Error.prototype;
+
+  function createChainableTypeChecker(validate) {
+    if ("production" !== 'production') {
+      var manualPropTypeCallCache = {};
+      var manualPropTypeWarningCount = 0;
+    }
+    function checkType(isRequired, props, propName, componentName, location, propFullName, secret) {
+      componentName = componentName || ANONYMOUS;
+      propFullName = propFullName || propName;
+
+      if (secret !== ReactPropTypesSecret) {
+        if (throwOnDirectAccess) {
+          // New behavior only for users of `prop-types` package
+          invariant(
+            false,
+            'Calling PropTypes validators directly is not supported by the `prop-types` package. ' +
+            'Use `PropTypes.checkPropTypes()` to call them. ' +
+            'Read more at http://fb.me/use-check-prop-types'
+          );
+        } else if ("production" !== 'production' && typeof console !== 'undefined') {
+          // Old behavior for people using React.PropTypes
+          var cacheKey = componentName + ':' + propName;
+          if (
+            !manualPropTypeCallCache[cacheKey] &&
+            // Avoid spamming the console because they are often not actionable except for lib authors
+            manualPropTypeWarningCount < 3
+          ) {
+            warning(
+              false,
+              'You are manually calling a React.PropTypes validation ' +
+              'function for the `%s` prop on `%s`. This is deprecated ' +
+              'and will throw in the standalone `prop-types` package. ' +
+              'You may be seeing this warning due to a third-party PropTypes ' +
+              'library. See https://fb.me/react-warning-dont-call-proptypes ' + 'for details.',
+              propFullName,
+              componentName
+            );
+            manualPropTypeCallCache[cacheKey] = true;
+            manualPropTypeWarningCount++;
+          }
+        }
+      }
+      if (props[propName] == null) {
+        if (isRequired) {
+          if (props[propName] === null) {
+            return new PropTypeError('The ' + location + ' `' + propFullName + '` is marked as required ' + ('in `' + componentName + '`, but its value is `null`.'));
+          }
+          return new PropTypeError('The ' + location + ' `' + propFullName + '` is marked as required in ' + ('`' + componentName + '`, but its value is `undefined`.'));
+        }
+        return null;
+      } else {
+        return validate(props, propName, componentName, location, propFullName);
+      }
+    }
+
+    var chainedCheckType = checkType.bind(null, false);
+    chainedCheckType.isRequired = checkType.bind(null, true);
+
+    return chainedCheckType;
+  }
+
+  function createPrimitiveTypeChecker(expectedType) {
+    function validate(props, propName, componentName, location, propFullName, secret) {
+      var propValue = props[propName];
+      var propType = getPropType(propValue);
+      if (propType !== expectedType) {
+        // `propValue` being instance of, say, date/regexp, pass the 'object'
+        // check, but we can offer a more precise error message here rather than
+        // 'of type `object`'.
+        var preciseType = getPreciseType(propValue);
+
+        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of type ' + ('`' + preciseType + '` supplied to `' + componentName + '`, expected ') + ('`' + expectedType + '`.'));
+      }
+      return null;
+    }
+    return createChainableTypeChecker(validate);
+  }
+
+  function createAnyTypeChecker() {
+    return createChainableTypeChecker(emptyFunction.thatReturnsNull);
+  }
+
+  function createArrayOfTypeChecker(typeChecker) {
+    function validate(props, propName, componentName, location, propFullName) {
+      if (typeof typeChecker !== 'function') {
+        return new PropTypeError('Property `' + propFullName + '` of component `' + componentName + '` has invalid PropType notation inside arrayOf.');
+      }
+      var propValue = props[propName];
+      if (!Array.isArray(propValue)) {
+        var propType = getPropType(propValue);
+        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of type ' + ('`' + propType + '` supplied to `' + componentName + '`, expected an array.'));
+      }
+      for (var i = 0; i < propValue.length; i++) {
+        var error = typeChecker(propValue, i, componentName, location, propFullName + '[' + i + ']', ReactPropTypesSecret);
+        if (error instanceof Error) {
+          return error;
+        }
+      }
+      return null;
+    }
+    return createChainableTypeChecker(validate);
+  }
+
+  function createElementTypeChecker() {
+    function validate(props, propName, componentName, location, propFullName) {
+      var propValue = props[propName];
+      if (!isValidElement(propValue)) {
+        var propType = getPropType(propValue);
+        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of type ' + ('`' + propType + '` supplied to `' + componentName + '`, expected a single ReactElement.'));
+      }
+      return null;
+    }
+    return createChainableTypeChecker(validate);
+  }
+
+  function createInstanceTypeChecker(expectedClass) {
+    function validate(props, propName, componentName, location, propFullName) {
+      if (!(props[propName] instanceof expectedClass)) {
+        var expectedClassName = expectedClass.name || ANONYMOUS;
+        var actualClassName = getClassName(props[propName]);
+        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of type ' + ('`' + actualClassName + '` supplied to `' + componentName + '`, expected ') + ('instance of `' + expectedClassName + '`.'));
+      }
+      return null;
+    }
+    return createChainableTypeChecker(validate);
+  }
+
+  function createEnumTypeChecker(expectedValues) {
+    if (!Array.isArray(expectedValues)) {
+      "production" !== 'production' ? warning(false, 'Invalid argument supplied to oneOf, expected an instance of array.') : void 0;
+      return emptyFunction.thatReturnsNull;
+    }
+
+    function validate(props, propName, componentName, location, propFullName) {
+      var propValue = props[propName];
+      for (var i = 0; i < expectedValues.length; i++) {
+        if (is(propValue, expectedValues[i])) {
+          return null;
+        }
+      }
+
+      var valuesString = JSON.stringify(expectedValues);
+      return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of value `' + propValue + '` ' + ('supplied to `' + componentName + '`, expected one of ' + valuesString + '.'));
+    }
+    return createChainableTypeChecker(validate);
+  }
+
+  function createObjectOfTypeChecker(typeChecker) {
+    function validate(props, propName, componentName, location, propFullName) {
+      if (typeof typeChecker !== 'function') {
+        return new PropTypeError('Property `' + propFullName + '` of component `' + componentName + '` has invalid PropType notation inside objectOf.');
+      }
+      var propValue = props[propName];
+      var propType = getPropType(propValue);
+      if (propType !== 'object') {
+        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of type ' + ('`' + propType + '` supplied to `' + componentName + '`, expected an object.'));
+      }
+      for (var key in propValue) {
+        if (propValue.hasOwnProperty(key)) {
+          var error = typeChecker(propValue, key, componentName, location, propFullName + '.' + key, ReactPropTypesSecret);
+          if (error instanceof Error) {
+            return error;
+          }
+        }
+      }
+      return null;
+    }
+    return createChainableTypeChecker(validate);
+  }
+
+  function createUnionTypeChecker(arrayOfTypeCheckers) {
+    if (!Array.isArray(arrayOfTypeCheckers)) {
+      "production" !== 'production' ? warning(false, 'Invalid argument supplied to oneOfType, expected an instance of array.') : void 0;
+      return emptyFunction.thatReturnsNull;
+    }
+
+    for (var i = 0; i < arrayOfTypeCheckers.length; i++) {
+      var checker = arrayOfTypeCheckers[i];
+      if (typeof checker !== 'function') {
+        warning(
+          false,
+          'Invalid argument supplied to oneOfType. Expected an array of check functions, but ' +
+          'received %s at index %s.',
+          getPostfixForTypeWarning(checker),
+          i
+        );
+        return emptyFunction.thatReturnsNull;
+      }
+    }
+
+    function validate(props, propName, componentName, location, propFullName) {
+      for (var i = 0; i < arrayOfTypeCheckers.length; i++) {
+        var checker = arrayOfTypeCheckers[i];
+        if (checker(props, propName, componentName, location, propFullName, ReactPropTypesSecret) == null) {
+          return null;
+        }
+      }
+
+      return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` supplied to ' + ('`' + componentName + '`.'));
+    }
+    return createChainableTypeChecker(validate);
+  }
+
+  function createNodeChecker() {
+    function validate(props, propName, componentName, location, propFullName) {
+      if (!isNode(props[propName])) {
+        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` supplied to ' + ('`' + componentName + '`, expected a ReactNode.'));
+      }
+      return null;
+    }
+    return createChainableTypeChecker(validate);
+  }
+
+  function createShapeTypeChecker(shapeTypes) {
+    function validate(props, propName, componentName, location, propFullName) {
+      var propValue = props[propName];
+      var propType = getPropType(propValue);
+      if (propType !== 'object') {
+        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of type `' + propType + '` ' + ('supplied to `' + componentName + '`, expected `object`.'));
+      }
+      for (var key in shapeTypes) {
+        var checker = shapeTypes[key];
+        if (!checker) {
+          continue;
+        }
+        var error = checker(propValue, key, componentName, location, propFullName + '.' + key, ReactPropTypesSecret);
+        if (error) {
+          return error;
+        }
+      }
+      return null;
+    }
+    return createChainableTypeChecker(validate);
+  }
+
+  function createStrictShapeTypeChecker(shapeTypes) {
+    function validate(props, propName, componentName, location, propFullName) {
+      var propValue = props[propName];
+      var propType = getPropType(propValue);
+      if (propType !== 'object') {
+        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of type `' + propType + '` ' + ('supplied to `' + componentName + '`, expected `object`.'));
+      }
+      // We need to check all keys in case some are required but missing from
+      // props.
+      var allKeys = assign({}, props[propName], shapeTypes);
+      for (var key in allKeys) {
+        var checker = shapeTypes[key];
+        if (!checker) {
+          return new PropTypeError(
+            'Invalid ' + location + ' `' + propFullName + '` key `' + key + '` supplied to `' + componentName + '`.' +
+            '\nBad object: ' + JSON.stringify(props[propName], null, '  ') +
+            '\nValid keys: ' +  JSON.stringify(Object.keys(shapeTypes), null, '  ')
+          );
+        }
+        var error = checker(propValue, key, componentName, location, propFullName + '.' + key, ReactPropTypesSecret);
+        if (error) {
+          return error;
+        }
+      }
+      return null;
+    }
+
+    return createChainableTypeChecker(validate);
+  }
+
+  function isNode(propValue) {
+    switch (typeof propValue) {
+      case 'number':
+      case 'string':
+      case 'undefined':
+        return true;
+      case 'boolean':
+        return !propValue;
+      case 'object':
+        if (Array.isArray(propValue)) {
+          return propValue.every(isNode);
+        }
+        if (propValue === null || isValidElement(propValue)) {
+          return true;
+        }
+
+        var iteratorFn = getIteratorFn(propValue);
+        if (iteratorFn) {
+          var iterator = iteratorFn.call(propValue);
+          var step;
+          if (iteratorFn !== propValue.entries) {
+            while (!(step = iterator.next()).done) {
+              if (!isNode(step.value)) {
+                return false;
+              }
+            }
+          } else {
+            // Iterator will provide entry [k,v] tuples rather than values.
+            while (!(step = iterator.next()).done) {
+              var entry = step.value;
+              if (entry) {
+                if (!isNode(entry[1])) {
+                  return false;
+                }
+              }
+            }
+          }
+        } else {
+          return false;
+        }
+
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  function isSymbol(propType, propValue) {
+    // Native Symbol.
+    if (propType === 'symbol') {
+      return true;
+    }
+
+    // 19.4.3.5 Symbol.prototype[@@toStringTag] === 'Symbol'
+    if (propValue['@@toStringTag'] === 'Symbol') {
+      return true;
+    }
+
+    // Fallback for non-spec compliant Symbols which are polyfilled.
+    if (typeof Symbol === 'function' && propValue instanceof Symbol) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // Equivalent of `typeof` but with special handling for array and regexp.
+  function getPropType(propValue) {
+    var propType = typeof propValue;
+    if (Array.isArray(propValue)) {
+      return 'array';
+    }
+    if (propValue instanceof RegExp) {
+      // Old webkits (at least until Android 4.0) return 'function' rather than
+      // 'object' for typeof a RegExp. We'll normalize this here so that /bla/
+      // passes PropTypes.object.
+      return 'object';
+    }
+    if (isSymbol(propType, propValue)) {
+      return 'symbol';
+    }
+    return propType;
+  }
+
+  // This handles more types than `getPropType`. Only used for error messages.
+  // See `createPrimitiveTypeChecker`.
+  function getPreciseType(propValue) {
+    if (typeof propValue === 'undefined' || propValue === null) {
+      return '' + propValue;
+    }
+    var propType = getPropType(propValue);
+    if (propType === 'object') {
+      if (propValue instanceof Date) {
+        return 'date';
+      } else if (propValue instanceof RegExp) {
+        return 'regexp';
+      }
+    }
+    return propType;
+  }
+
+  // Returns a string that is postfixed to a warning about an invalid type.
+  // For example, "undefined" or "of type array"
+  function getPostfixForTypeWarning(value) {
+    var type = getPreciseType(value);
+    switch (type) {
+      case 'array':
+      case 'object':
+        return 'an ' + type;
+      case 'boolean':
+      case 'date':
+      case 'regexp':
+        return 'a ' + type;
+      default:
+        return type;
+    }
+  }
+
+  // Returns class name of the object, if any.
+  function getClassName(propValue) {
+    if (!propValue.constructor || !propValue.constructor.name) {
+      return ANONYMOUS;
+    }
+    return propValue.constructor.name;
+  }
+
+  ReactPropTypes.checkPropTypes = checkPropTypes;
+  ReactPropTypes.PropTypes = ReactPropTypes;
+
+  return ReactPropTypes;
+};
+
+},{"./checkPropTypes":6,"./lib/ReactPropTypesSecret":10,"fbjs/lib/emptyFunction":2,"fbjs/lib/invariant":3,"fbjs/lib/warning":4,"object-assign":5}],9:[function(require,module,exports){
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+if ("production" !== 'production') {
+  var REACT_ELEMENT_TYPE = (typeof Symbol === 'function' &&
+    Symbol.for &&
+    Symbol.for('react.element')) ||
+    0xeac7;
+
+  var isValidElement = function(object) {
+    return typeof object === 'object' &&
+      object !== null &&
+      object.$$typeof === REACT_ELEMENT_TYPE;
+  };
+
+  // By explicitly using `prop-types` you are opting into new development behavior.
+  // http://fb.me/prop-types-in-prod
+  var throwOnDirectAccess = true;
+  module.exports = require('./factoryWithTypeCheckers')(isValidElement, throwOnDirectAccess);
+} else {
+  // By explicitly using `prop-types` you are opting into new production behavior.
+  // http://fb.me/prop-types-in-prod
+  module.exports = require('./factoryWithThrowingShims')();
+}
+
+},{"./factoryWithThrowingShims":7,"./factoryWithTypeCheckers":8}],10:[function(require,module,exports){
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+'use strict';
+
+var ReactPropTypesSecret = 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED';
+
+module.exports = ReactPropTypesSecret;
+
+},{}],11:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./lib/');
 
-},{"./lib/":16}],3:[function(require,module,exports){
+},{"./lib/":25}],12:[function(require,module,exports){
 // List of valid entities
 //
 // Generate with ./support/entities.js script
@@ -4464,7 +5419,7 @@ module.exports = {
   "zwnj":"\u200C"
 };
 
-},{}],4:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 // List of valid html blocks names, accorting to commonmark spec
 // http://jgm.github.io/CommonMark/spec.html#html-blocks
 
@@ -4528,7 +5483,7 @@ var html_blocks = {};
 
 module.exports = html_blocks;
 
-},{}],5:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 // Regexps to match html elements
 
 'use strict';
@@ -4589,7 +5544,7 @@ var HTML_TAG_RE = replace(/^(?:open_tag|close_tag|comment|processing|declaration
 
 module.exports.HTML_TAG_RE = HTML_TAG_RE;
 
-},{}],6:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 // List of valid url schemas, accorting to commonmark spec
 // http://jgm.github.io/CommonMark/spec.html#autolinks
 
@@ -4763,7 +5718,7 @@ module.exports = [
   'ymsgr'
 ];
 
-},{}],7:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 'use strict';
 
 /**
@@ -4906,7 +5861,7 @@ exports.fromCodePoint     = fromCodePoint;
 exports.replaceEntities   = replaceEntities;
 exports.escapeHtml        = escapeHtml;
 
-},{"./entities":3}],8:[function(require,module,exports){
+},{"./entities":12}],17:[function(require,module,exports){
 // Commonmark default options
 
 'use strict';
@@ -4979,7 +5934,7 @@ module.exports = {
   }
 };
 
-},{}],9:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 // Remarkable default options
 
 'use strict';
@@ -5061,7 +6016,7 @@ module.exports = {
   }
 };
 
-},{}],10:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 // Remarkable default options
 
 'use strict';
@@ -5101,7 +6056,7 @@ module.exports = {
   }
 };
 
-},{}],11:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 'use strict';
 
 var replaceEntities = require('../common/utils').replaceEntities;
@@ -5116,7 +6071,7 @@ module.exports = function normalizeLink(url) {
   return encodeURI(normalized);
 };
 
-},{"../common/utils":7}],12:[function(require,module,exports){
+},{"../common/utils":16}],21:[function(require,module,exports){
 'use strict';
 
 module.exports = function normalizeReference(str) {
@@ -5126,7 +6081,7 @@ module.exports = function normalizeReference(str) {
   return str.trim().replace(/\s+/g, ' ').toUpperCase();
 };
 
-},{}],13:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 'use strict';
 
 
@@ -5211,7 +6166,7 @@ module.exports = function parseLinkDestination(state, pos) {
   return true;
 };
 
-},{"../common/utils":7,"./normalize_link":11}],14:[function(require,module,exports){
+},{"../common/utils":16,"./normalize_link":20}],23:[function(require,module,exports){
 'use strict';
 
 /**
@@ -5272,7 +6227,7 @@ module.exports = function parseLinkLabel(state, start) {
   return labelEnd;
 };
 
-},{}],15:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 'use strict';
 
 
@@ -5320,7 +6275,7 @@ module.exports = function parseLinkTitle(state, pos) {
   return false;
 };
 
-},{"../common/utils":7}],16:[function(require,module,exports){
+},{"../common/utils":16}],25:[function(require,module,exports){
 'use strict';
 
 /**
@@ -5517,7 +6472,7 @@ module.exports = Remarkable;
 
 module.exports.utils = require('./common/utils');
 
-},{"./common/utils":7,"./configs/commonmark":8,"./configs/default":9,"./configs/full":10,"./parser_block":17,"./parser_core":18,"./parser_inline":19,"./renderer":20,"./ruler":21}],17:[function(require,module,exports){
+},{"./common/utils":16,"./configs/commonmark":17,"./configs/default":18,"./configs/full":19,"./parser_block":26,"./parser_core":27,"./parser_inline":28,"./renderer":29,"./ruler":30}],26:[function(require,module,exports){
 'use strict';
 
 /**
@@ -5674,7 +6629,7 @@ ParserBlock.prototype.parse = function (str, options, env, outTokens) {
 
 module.exports = ParserBlock;
 
-},{"./ruler":21,"./rules_block/blockquote":23,"./rules_block/code":24,"./rules_block/deflist":25,"./rules_block/fences":26,"./rules_block/footnote":27,"./rules_block/heading":28,"./rules_block/hr":29,"./rules_block/htmlblock":30,"./rules_block/lheading":31,"./rules_block/list":32,"./rules_block/paragraph":33,"./rules_block/state_block":34,"./rules_block/table":35}],18:[function(require,module,exports){
+},{"./ruler":30,"./rules_block/blockquote":32,"./rules_block/code":33,"./rules_block/deflist":34,"./rules_block/fences":35,"./rules_block/footnote":36,"./rules_block/heading":37,"./rules_block/hr":38,"./rules_block/htmlblock":39,"./rules_block/lheading":40,"./rules_block/list":41,"./rules_block/paragraph":42,"./rules_block/state_block":43,"./rules_block/table":44}],27:[function(require,module,exports){
 'use strict';
 
 /**
@@ -5734,7 +6689,7 @@ Core.prototype.process = function (state) {
 
 module.exports = Core;
 
-},{"./ruler":21,"./rules_core/abbr":36,"./rules_core/abbr2":37,"./rules_core/block":38,"./rules_core/footnote_tail":39,"./rules_core/inline":40,"./rules_core/linkify":41,"./rules_core/references":42,"./rules_core/replacements":43,"./rules_core/smartquotes":44}],19:[function(require,module,exports){
+},{"./ruler":30,"./rules_core/abbr":45,"./rules_core/abbr2":46,"./rules_core/block":47,"./rules_core/footnote_tail":48,"./rules_core/inline":49,"./rules_core/linkify":50,"./rules_core/references":51,"./rules_core/replacements":52,"./rules_core/smartquotes":53}],28:[function(require,module,exports){
 'use strict';
 
 /**
@@ -5897,7 +6852,7 @@ function validateLink(url) {
 
 module.exports = ParserInline;
 
-},{"./common/utils":7,"./ruler":21,"./rules_inline/autolink":45,"./rules_inline/backticks":46,"./rules_inline/del":47,"./rules_inline/emphasis":48,"./rules_inline/entity":49,"./rules_inline/escape":50,"./rules_inline/footnote_inline":51,"./rules_inline/footnote_ref":52,"./rules_inline/htmltag":53,"./rules_inline/ins":54,"./rules_inline/links":55,"./rules_inline/mark":56,"./rules_inline/newline":57,"./rules_inline/state_inline":58,"./rules_inline/sub":59,"./rules_inline/sup":60,"./rules_inline/text":61}],20:[function(require,module,exports){
+},{"./common/utils":16,"./ruler":30,"./rules_inline/autolink":54,"./rules_inline/backticks":55,"./rules_inline/del":56,"./rules_inline/emphasis":57,"./rules_inline/entity":58,"./rules_inline/escape":59,"./rules_inline/footnote_inline":60,"./rules_inline/footnote_ref":61,"./rules_inline/htmltag":62,"./rules_inline/ins":63,"./rules_inline/links":64,"./rules_inline/mark":65,"./rules_inline/newline":66,"./rules_inline/state_inline":67,"./rules_inline/sub":68,"./rules_inline/sup":69,"./rules_inline/text":70}],29:[function(require,module,exports){
 'use strict';
 
 /**
@@ -5974,7 +6929,7 @@ Renderer.prototype.render = function (tokens, options, env) {
   return result;
 };
 
-},{"./common/utils":7,"./rules":22}],21:[function(require,module,exports){
+},{"./common/utils":16,"./rules":31}],30:[function(require,module,exports){
 'use strict';
 
 /**
@@ -6249,7 +7204,7 @@ Ruler.prototype.getRules = function (chainName) {
 
 module.exports = Ruler;
 
-},{}],22:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 'use strict';
 
 /**
@@ -6680,7 +7635,7 @@ var getBreak = rules.getBreak = function getBreak(tokens, idx) {
 
 module.exports = rules;
 
-},{"./common/utils":7}],23:[function(require,module,exports){
+},{"./common/utils":16}],32:[function(require,module,exports){
 // Block quotes
 
 'use strict';
@@ -6815,7 +7770,7 @@ module.exports = function blockquote(state, startLine, endLine, silent) {
   return true;
 };
 
-},{}],24:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 // Code block (4 spaces padded)
 
 'use strict';
@@ -6853,7 +7808,7 @@ module.exports = function code(state, startLine, endLine/*, silent*/) {
   return true;
 };
 
-},{}],25:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 // Definition lists
 
 'use strict';
@@ -7062,7 +8017,7 @@ module.exports = function deflist(state, startLine, endLine, silent) {
   return true;
 };
 
-},{}],26:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 // fences (``` lang, ~~~ lang)
 
 'use strict';
@@ -7155,7 +8110,7 @@ module.exports = function fences(state, startLine, endLine, silent) {
   return true;
 };
 
-},{}],27:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 // Process footnote reference list
 
 'use strict';
@@ -7224,7 +8179,7 @@ module.exports = function footnote(state, startLine, endLine, silent) {
   return true;
 };
 
-},{}],28:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 // heading (#, ##, ...)
 
 'use strict';
@@ -7284,7 +8239,7 @@ module.exports = function heading(state, startLine, endLine, silent) {
   return true;
 };
 
-},{}],29:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 // Horizontal rule
 
 'use strict';
@@ -7331,7 +8286,7 @@ module.exports = function hr(state, startLine, endLine, silent) {
   return true;
 };
 
-},{}],30:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 // HTML block
 
 'use strict';
@@ -7407,7 +8362,7 @@ module.exports = function htmlblock(state, startLine, endLine, silent) {
   return true;
 };
 
-},{"../common/html_blocks":4}],31:[function(require,module,exports){
+},{"../common/html_blocks":13}],40:[function(require,module,exports){
 // lheading (---, ===)
 
 'use strict';
@@ -7464,7 +8419,7 @@ module.exports = function lheading(state, startLine, endLine/*, silent*/) {
   return true;
 };
 
-},{}],32:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 // Lists
 
 'use strict';
@@ -7732,7 +8687,7 @@ module.exports = function list(state, startLine, endLine, silent) {
   return true;
 };
 
-},{}],33:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 // Paragraph
 
 'use strict';
@@ -7793,7 +8748,7 @@ module.exports = function paragraph(state, startLine/*, endLine*/) {
   return true;
 };
 
-},{}],34:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 // Parser state class
 
 'use strict';
@@ -7953,7 +8908,7 @@ StateBlock.prototype.getLines = function getLines(begin, end, indent, keepLastLF
 
 module.exports = StateBlock;
 
-},{}],35:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 // GFM table, non-standard
 
 'use strict';
@@ -8093,7 +9048,7 @@ module.exports = function table(state, startLine, endLine, silent) {
   return true;
 };
 
-},{}],36:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 // Parse abbreviation definitions, i.e. `*[abbr]: description`
 //
 
@@ -8165,7 +9120,7 @@ module.exports = function abbr(state) {
   }
 };
 
-},{"../helpers/parse_link_label":14,"../rules_inline/state_inline":58}],37:[function(require,module,exports){
+},{"../helpers/parse_link_label":23,"../rules_inline/state_inline":67}],46:[function(require,module,exports){
 // Enclose abbreviations in <abbr> tags
 //
 'use strict';
@@ -8255,7 +9210,7 @@ module.exports = function abbr2(state) {
   }
 };
 
-},{}],38:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 'use strict';
 
 module.exports = function block(state) {
@@ -8274,7 +9229,7 @@ module.exports = function block(state) {
   }
 };
 
-},{}],39:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 'use strict';
 
 
@@ -8371,7 +9326,7 @@ module.exports = function footnote_block(state) {
   });
 };
 
-},{}],40:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 'use strict';
 
 module.exports = function inline(state) {
@@ -8386,7 +9341,7 @@ module.exports = function inline(state) {
   }
 };
 
-},{}],41:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 // Replace link-like texts with link nodes.
 //
 // Currently restricted by `inline.validateLink()` to http/https/ftp
@@ -8549,7 +9504,7 @@ module.exports = function linkify(state) {
   }
 };
 
-},{"autolinker":1}],42:[function(require,module,exports){
+},{"autolinker":1}],51:[function(require,module,exports){
 'use strict';
 
 
@@ -8649,7 +9604,7 @@ module.exports = function references(state) {
   }
 };
 
-},{"../helpers/normalize_reference":12,"../helpers/parse_link_destination":13,"../helpers/parse_link_label":14,"../helpers/parse_link_title":15,"../rules_inline/state_inline":58}],43:[function(require,module,exports){
+},{"../helpers/normalize_reference":21,"../helpers/parse_link_destination":22,"../helpers/parse_link_label":23,"../helpers/parse_link_title":24,"../rules_inline/state_inline":67}],52:[function(require,module,exports){
 // Simple typographical replacements
 //
 'use strict';
@@ -8715,7 +9670,7 @@ module.exports = function replace(state) {
   }
 };
 
-},{}],44:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 // Convert straight quotation marks to typographic ones
 //
 'use strict';
@@ -8830,7 +9785,7 @@ module.exports = function smartquotes(state) {
   }
 };
 
-},{}],45:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 // Process autolinks '<protocol:...>'
 
 'use strict';
@@ -8910,7 +9865,7 @@ module.exports = function autolink(state, silent) {
   return false;
 };
 
-},{"../common/url_schemas":6,"../helpers/normalize_link":11}],46:[function(require,module,exports){
+},{"../common/url_schemas":15,"../helpers/normalize_link":20}],55:[function(require,module,exports){
 // Parse backticks
 
 'use strict';
@@ -8958,7 +9913,7 @@ module.exports = function backticks(state, silent) {
   return true;
 };
 
-},{}],47:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 // Process ~~deleted text~~
 
 'use strict';
@@ -9044,7 +9999,7 @@ module.exports = function del(state, silent) {
   return true;
 };
 
-},{}],48:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 // Process *this* and _that_
 
 'use strict';
@@ -9195,7 +10150,7 @@ module.exports = function emphasis(state, silent) {
   return true;
 };
 
-},{}],49:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 // Process html entity - &#123;, &#xAF;, &quot;, ...
 
 'use strict';
@@ -9245,7 +10200,7 @@ module.exports = function entity(state, silent) {
   return true;
 };
 
-},{"../common/entities":3,"../common/utils":7}],50:[function(require,module,exports){
+},{"../common/entities":12,"../common/utils":16}],59:[function(require,module,exports){
 // Proceess escaped chars and hardbreaks
 
 'use strict';
@@ -9296,7 +10251,7 @@ module.exports = function escape(state, silent) {
   return true;
 };
 
-},{}],51:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 // Process inline footnotes (^[...])
 
 'use strict';
@@ -9351,7 +10306,7 @@ module.exports = function footnote_inline(state, silent) {
   return true;
 };
 
-},{"../helpers/parse_link_label":14}],52:[function(require,module,exports){
+},{"../helpers/parse_link_label":23}],61:[function(require,module,exports){
 // Process footnote references ([^...])
 
 'use strict';
@@ -9415,7 +10370,7 @@ module.exports = function footnote_ref(state, silent) {
   return true;
 };
 
-},{}],53:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 // Process html tags
 
 'use strict';
@@ -9466,7 +10421,7 @@ module.exports = function htmltag(state, silent) {
   return true;
 };
 
-},{"../common/html_re":5}],54:[function(require,module,exports){
+},{"../common/html_re":14}],63:[function(require,module,exports){
 // Process ++inserted text++
 
 'use strict';
@@ -9552,7 +10507,7 @@ module.exports = function ins(state, silent) {
   return true;
 };
 
-},{}],55:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 // Process [links](<to> "stuff")
 
 'use strict';
@@ -9724,7 +10679,7 @@ module.exports = function links(state, silent) {
   return true;
 };
 
-},{"../helpers/normalize_reference":12,"../helpers/parse_link_destination":13,"../helpers/parse_link_label":14,"../helpers/parse_link_title":15}],56:[function(require,module,exports){
+},{"../helpers/normalize_reference":21,"../helpers/parse_link_destination":22,"../helpers/parse_link_label":23,"../helpers/parse_link_title":24}],65:[function(require,module,exports){
 // Process ==highlighted text==
 
 'use strict';
@@ -9810,7 +10765,7 @@ module.exports = function del(state, silent) {
   return true;
 };
 
-},{}],57:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 // Proceess '\n'
 
 'use strict';
@@ -9866,7 +10821,7 @@ module.exports = function newline(state, silent) {
   return true;
 };
 
-},{}],58:[function(require,module,exports){
+},{}],67:[function(require,module,exports){
 // Inline parser state
 
 'use strict';
@@ -9944,7 +10899,7 @@ StateInline.prototype.cacheGet = function (key) {
 
 module.exports = StateInline;
 
-},{}],59:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 // Process ~subscript~
 
 'use strict';
@@ -10004,7 +10959,7 @@ module.exports = function sub(state, silent) {
   return true;
 };
 
-},{}],60:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 // Process ^superscript^
 
 'use strict';
@@ -10064,7 +11019,7 @@ module.exports = function sup(state, silent) {
   return true;
 };
 
-},{}],61:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 // Skip text characters for text token, place those to pending buffer
 // and increment current pos
 
@@ -10139,12 +11094,16 @@ var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
 
+var _propTypes = require('prop-types');
+
+var _propTypes2 = _interopRequireDefault(_propTypes);
+
 var _remarkable = require('remarkable');
 
 var _remarkable2 = _interopRequireDefault(_remarkable);
 
-var ReactRemark = (function (_React$Component) {
-	_inherits(ReactRemark, _React$Component);
+var ReactRemark = (function (_Component) {
+	_inherits(ReactRemark, _Component);
 
 	function ReactRemark(props) {
 		_classCallCheck(this, ReactRemark);
@@ -10166,12 +11125,12 @@ var ReactRemark = (function (_React$Component) {
 	}]);
 
 	return ReactRemark;
-})(_react2['default'].Component);
+})(_react.Component);
 
 ReactRemark.propTypes = {
-	className: _react2['default'].PropTypes.string,
-	html: _react2['default'].PropTypes.bool,
-	source: _react2['default'].PropTypes.string
+	className: _propTypes2['default'].string,
+	html: _propTypes2['default'].bool,
+	source: _propTypes2['default'].string
 };
 
 _react2['default'].defaultProps = {
@@ -10182,4 +11141,4 @@ _react2['default'].defaultProps = {
 exports['default'] = ReactRemark;
 module.exports = exports['default'];
 
-},{"react":undefined,"remarkable":2}]},{},[]);
+},{"prop-types":9,"react":undefined,"remarkable":11}]},{},[]);
