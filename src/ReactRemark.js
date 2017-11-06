@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { Component } from 'react';
+import PropTypes from 'prop-types';
 import Remarkable from 'remarkable';
 
-class ReactRemark extends React.Component {
+class ReactRemark extends Component {
 	constructor(props) {
 		super(props);
 		this.md = new Remarkable({
@@ -20,9 +21,9 @@ class ReactRemark extends React.Component {
 }
 
 ReactRemark.propTypes = {
-	className: React.PropTypes.string,
-	html: React.PropTypes.bool,
-	source: React.PropTypes.string
+	className: PropTypes.string,
+	html: PropTypes.bool,
+	source: PropTypes.string
 };
 
 React.defaultProps = {

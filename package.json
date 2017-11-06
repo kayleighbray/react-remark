@@ -1,6 +1,6 @@
 {
   "name": "react-remark",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "react-remark",
   "main": "lib/ReactRemark.js",
   "author": "Aaron Wong",
@@ -14,13 +14,14 @@
   },
   "dependencies": {
     "classnames": "^2.1.2",
+    "prop-types": "^15.6.0",
     "remarkable": "^1.7.1"
   },
   "devDependencies": {
     "babel-eslint": "^6.1.2",
     "eslint": "^3.4.0",
     "eslint-plugin-react": "^6.3.0",
-    "gulp": "^3.9.0",
+    "gulp": "^3.9.1",
     "react": "^15.3.2",
     "react-component-gulp-tasks": "^0.7.6",
     "react-dom": "^15.3.2"
